@@ -1,0 +1,54 @@
+name:                honno
+version:             0.2.0.0
+github:              "leetschau/honno"
+license:             BSD3
+author:              "Chao Li"
+maintainer:          "leetschau@gmail.com"
+copyright:           "2021 Chao LI"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/leetschau/honno#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- directory
+- filepath >= 1.4.2.1
+- split
+- text >= 1.2.4
+- time >= 1.9.3
+- pandoc >= 2.14.0.3
+
+library:
+  source-dirs: src
+
+executables:
+  honno-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - honno
+
+tests:
+  honno-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - honno
