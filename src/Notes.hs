@@ -10,9 +10,10 @@ import Data.Time.Calendar
 import Data.Time.Clock
 import System.Directory
 import System.FilePath.Posix
+import TextShow
 import Text.Pandoc.Shared
 import qualified Data.Text as T
-import qualified Data.Text.IO as TI
+import qualified Data.Text.IO as TIO
 
 
 data Note =
@@ -26,24 +27,28 @@ data Note =
         , filePath :: String
         }
 
-instance Show Note where
-    show note = unwords [show $ updated note
-                       , show $ notebook note
-                       , show $ title note
-                       , show $ created note
-                       , show $ tagList note ]
+instance TextShow Note where
+    showb note = fromText $ mconcat [(tshow $ localDay $ updated note)
+                         , " "
+                         , (notebook note)
+                         , ": "
+                         , (title note)
+                         , " "
+                         , (tshow $ localDay $ created note)
+                         , " "
+                         , (tshow $ tagList note)]
 
 noteRepo = "/home/leo/.donno/repo"
 
 parse ["l", num] = listNotes num
 parse ("s": words) = do
     notes <-simpleSearch words
-    putStrLn $ unlines $ map (\x -> show x) notes
+    TIO.putStrLn $ T.unlines $ map (\x -> showt x) notes
 
 
 parseNote :: FilePath -> IO Note
 parseNote notePath = do
-    fileContent <- TI.readFile notePath
+    fileContent <- TIO.readFile notePath
     let (titleLine : tagLine : notebookLine :
          creLine : updLine : _ : _ : bodyLines) =
             T.lines fileContent
@@ -65,7 +70,7 @@ loadNotes repoPath = do
     sequence $ map (\notePath -> parseNote $ joinPath [noteRepo, notePath]) mdFiles
 
 
-filterByWords :: [String] -> [Note] -> [Note]
+filterByWords :: [T.Text] -> [Note] -> [Note]
 filterByWords words notes =
     let wordInNote word note =
             (T.isInfixOf word (title note))
@@ -73,11 +78,11 @@ filterByWords words notes =
             || (any (\tag -> T.isInfixOf word tag) (tagList note))
     in foldl (\noteList word -> filter (wordInNote word) noteList)
              notes
-             (map (\x -> T.pack x) words)
+             words
 
 
-simpleSearch :: [String] -> IO [Note]
+simpleSearch :: [T.Text] -> IO [Note]
 simpleSearch words = (filterByWords words) <$> (loadNotes noteRepo)
 
 
-listNotes num = putStrLn ("List " ++ num ++ " notes:")
+listNotes num = TIO.putStrLn ("List " <> num <> " notes:")

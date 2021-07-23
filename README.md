@@ -1,3 +1,3 @@
-# hod: donno in Haskell
+# hodo: donno in Haskell
 
 

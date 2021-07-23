@@ -1,6 +1,6 @@
-name:                honno
+name:                hod
 version:             0.2.0.0
-github:              "leetschau/honno"
+github:              "leetschau/hod"
 license:             BSD3
 author:              "Chao Li"
 maintainer:          "leetschau@gmail.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/leetschau/honno#readme>
+description:         Please see the README on GitHub at <https://github.com/leetschau/hod#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -27,12 +27,13 @@ dependencies:
 - text >= 1.2.4
 - time >= 1.9.3
 - pandoc >= 2.14.0.3
+- text-show >= 3.9
 
 library:
   source-dirs: src
 
 executables:
-  honno-exe:
+  hod-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -40,10 +41,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - honno
+    - hod
 
 tests:
-  honno-test:
+  hod-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -51,4 +52,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - honno
+    - hod

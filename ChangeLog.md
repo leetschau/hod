@@ -1,3 +1,3 @@
-# Changelog for honno
+# Changelog for hod
 
 ## Unreleased changes
