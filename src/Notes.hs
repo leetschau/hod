@@ -4,10 +4,7 @@ module Notes
     ) where
 
 import Data.List
-import Data.List.Split
 import Data.Time
-import Data.Time.Calendar
-import Data.Time.Clock
 import System.Directory
 import System.FilePath.Posix
 import TextShow
@@ -24,8 +21,8 @@ data Note =
         , created :: LocalTime
         , updated :: LocalTime
         , content :: T.Text
-        , filePath :: String
-        }
+        , filePath :: T.Text
+        } deriving (Ord, Eq)
 
 instance TextShow Note where
     showb note = fromText $ mconcat [(tshow $ localDay $ updated note)
@@ -39,50 +36,60 @@ instance TextShow Note where
                          , (tshow $ tagList note)]
 
 noteRepo = "/home/leo/.donno/repo"
+recordPath = "/home/leo/.donno/reclist"
 
-parse ["l", num] = listNotes num
-parse ("s": words) = do
-    notes <-simpleSearch words
-    TIO.putStrLn $ T.unlines $ map (\x -> showt x) notes
+parse :: [T.Text] -> IO ()
+parse ["l", num] = listNotes dispNum
+    where dispNum = read $ T.unpack num :: Int
+parse ("s": words) = simpleSearch words >>= saveAndDisplayList
 
 
 parseNote :: FilePath -> IO Note
 parseNote notePath = do
     fileContent <- TIO.readFile notePath
-    let (titleLine : tagLine : notebookLine :
-         creLine : updLine : _ : _ : bodyLines) =
+    let titleLine : tagLine : notebookLine :
+            creLine : updLine : _ : _ : bodyLines =
             T.lines fileContent
     return Note {title = T.drop 7 titleLine
-        , tagList = map (\x -> T.strip x) $ T.splitOn ";" $ T.drop 6 tagLine
+        , tagList = map T.strip $ T.splitOn ";" $ T.drop 6 tagLine
         , notebook = T.drop 10 notebookLine
         , created = parseTimeOrError True defaultTimeLocale "%Y-%m-%d %H:%M:%S"
             $ T.unpack $ T.drop 9 creLine
         , updated = parseTimeOrError True defaultTimeLocale "%Y-%m-%d %H:%M:%S"
             $ T.unpack $ T.drop 9 updLine
         , content = T.unlines bodyLines
-        , filePath = notePath }
+        , filePath = T.pack notePath }
 
 
-loadNotes :: FilePath -> IO [Note]
-loadNotes repoPath = do
-    allFiles <- listDirectory repoPath
-    let mdFiles = filter (\filename -> isSuffixOf ".md" filename) allFiles
-    sequence $ map (\notePath -> parseNote $ joinPath [noteRepo, notePath]) mdFiles
+loadSortedNotes :: FilePath -> IO [Note]
+loadSortedNotes repoPath = do
+    mdFiles <- (filter $ isSuffixOf ".md") <$> listDirectory repoPath
+    notes <- sequence $ map (\notePath ->
+                                parseNote $ joinPath [repoPath, notePath])
+                            mdFiles
+    return $ reverse $ sortOn updated notes
 
 
-filterByWords :: [T.Text] -> [Note] -> [Note]
-filterByWords words notes =
-    let wordInNote word note =
-            (T.isInfixOf word (title note))
-            || (T.isInfixOf word (content note))
-            || (any (\tag -> T.isInfixOf word tag) (tagList note))
-    in foldl (\noteList word -> filter (wordInNote word) noteList)
-             notes
-             words
+saveAndDisplayList :: [Note] -> IO ()
+saveAndDisplayList [] = TIO.putStrLn ""
+saveAndDisplayList notes = do
+    TIO.writeFile recordPath $ T.unlines $ map filePath notes
+    TIO.putStrLn $ T.unlines $ "No. Updated, Notebook, Title, Created, Tags" :
+                               map showt notes
 
 
 simpleSearch :: [T.Text] -> IO [Note]
-simpleSearch words = (filterByWords words) <$> (loadNotes noteRepo)
+simpleSearch words = filterByWords words <$> loadSortedNotes noteRepo
+    where wordInNote :: T.Text -> Note -> Bool
+          wordInNote word note = (T.isInfixOf word $ title note)
+              || (T.isInfixOf word $ content note)
+              || (any (T.isInfixOf word) $ tagList note)
+          filterByWords :: [T.Text] -> [Note] -> [Note]
+          filterByWords words notes =
+              foldl (\noteList word -> filter (wordInNote word) noteList)
+                    notes
+                    words
 
 
-listNotes num = TIO.putStrLn ("List " <> num <> " notes:")
+listNotes :: Int -> IO ()
+listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
