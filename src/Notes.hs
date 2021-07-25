@@ -7,6 +7,7 @@ import Data.List
 import Data.Time
 import System.Directory
 import System.FilePath.Posix
+import System.Process
 import TextShow
 import Text.Pandoc.Shared
 import qualified Data.Text as T
@@ -37,11 +38,19 @@ instance TextShow Note where
 
 noteRepo = "/home/leo/.donno/repo"
 recordPath = "/home/leo/.donno/reclist"
+defaultListLen = 5
 
 parse :: [T.Text] -> IO ()
+parse ["e"] = editNote 1
+parse ["e", num] = editNote dispNum
+    where dispNum = read $ T.unpack num :: Int
+parse ["l"] = listNotes defaultListLen
 parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ("s": words) = simpleSearch words >>= saveAndDisplayList
+parse ["v"] = viewNote 1
+parse ["v", num] = viewNote dispNum
+    where dispNum = read $ T.unpack num :: Int
 
 
 parseNote :: FilePath -> IO Note
@@ -74,8 +83,11 @@ saveAndDisplayList :: [Note] -> IO ()
 saveAndDisplayList [] = TIO.putStrLn ""
 saveAndDisplayList notes = do
     TIO.writeFile recordPath $ T.unlines $ map filePath notes
-    TIO.putStrLn $ T.unlines $ "No. Updated, Notebook, Title, Created, Tags" :
-                               map showt notes
+    TIO.putStrLn
+        $ T.unlines
+        $ "No. Updated, Notebook, Title, Created, Tags" :
+            map (\(idx, note) -> tshow idx <> ". " <> showt note) noteEnums
+        where noteEnums = zip [1 .. ] notes
 
 
 simpleSearch :: [T.Text] -> IO [Note]
@@ -93,3 +105,18 @@ simpleSearch words = filterByWords words <$> loadSortedNotes noteRepo
 
 listNotes :: Int -> IO ()
 listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
+
+
+viewNote :: Int -> IO ()
+viewNote num = do
+    fileContent <- TIO.readFile recordPath
+    let notePath = (T.lines fileContent) !! (num - 1)
+    callProcess "nvim" ["-R", T.unpack notePath]
+
+
+editNote :: Int -> IO ()
+editNote num = do
+    fileContent <- TIO.readFile recordPath
+    let notePath = (T.lines fileContent) !! (num - 1)
+    callProcess "nvim" [T.unpack notePath]
+

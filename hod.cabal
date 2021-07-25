@@ -35,10 +35,12 @@ library
     , directory
     , filepath >=1.4.2.1
     , pandoc >=2.14.0.3
+    , process >=1.6.9.0
     , split
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
+    , turtle >=1.5.22
   default-language: Haskell2010
 
 executable hod-exe
@@ -54,10 +56,12 @@ executable hod-exe
     , filepath >=1.4.2.1
     , hod
     , pandoc >=2.14.0.3
+    , process >=1.6.9.0
     , split
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
+    , turtle >=1.5.22
   default-language: Haskell2010
 
 test-suite hod-test
@@ -74,8 +78,10 @@ test-suite hod-test
     , filepath >=1.4.2.1
     , hod
     , pandoc >=2.14.0.3
+    , process >=1.6.9.0
     , split
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
+    , turtle >=1.5.22
   default-language: Haskell2010

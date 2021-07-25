@@ -27,7 +27,9 @@ dependencies:
 - text >= 1.2.4
 - time >= 1.9.3
 - pandoc >= 2.14.0.3
+- process >= 1.6.9.0
 - text-show >= 3.9
+- turtle >= 1.5.22
 
 library:
   source-dirs: src
