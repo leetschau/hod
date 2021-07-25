@@ -1,5 +1,5 @@
 name:                hod
-version:             0.2.0.0
+version:             0.3.0.0
 github:              "leetschau/hod"
 license:             BSD3
 author:              "Chao Li"
@@ -29,7 +29,6 @@ dependencies:
 - pandoc >= 2.14.0.3
 - process >= 1.6.9.0
 - text-show >= 3.9
-- turtle >= 1.5.22
 
 library:
   source-dirs: src

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           hod
-version:        0.2.0.0
+version:        0.3.0.0
 description:    Please see the README on GitHub at <https://github.com/leetschau/hod#readme>
 homepage:       https://github.com/leetschau/hod#readme
 bug-reports:    https://github.com/leetschau/hod/issues
@@ -40,7 +40,6 @@ library
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
-    , turtle >=1.5.22
   default-language: Haskell2010
 
 executable hod-exe
@@ -61,7 +60,6 @@ executable hod-exe
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
-    , turtle >=1.5.22
   default-language: Haskell2010
 
 test-suite hod-test
@@ -83,5 +81,4 @@ test-suite hod-test
     , text >=1.2.4
     , text-show >=3.9
     , time >=1.9.3
-    , turtle >=1.5.22
   default-language: Haskell2010

@@ -5,6 +5,8 @@ module Notes
 
 import Data.List
 import Data.Time
+import Data.Version (showVersion)
+import Paths_hod (version)
 import System.Directory
 import System.FilePath.Posix
 import System.Process
@@ -51,6 +53,8 @@ parse ("s": words) = simpleSearch words >>= saveAndDisplayList
 parse ["v"] = viewNote 1
 parse ["v", num] = viewNote dispNum
     where dispNum = read $ T.unpack num :: Int
+parse ["ver"] = parse ["version"]
+parse ["version"] = putStrLn $ showVersion version
 
 
 parseNote :: FilePath -> IO Note
