@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
 module Notes
     ( parse
     ) where
@@ -6,12 +6,14 @@ module Notes
 import Data.List
 import Data.Time
 import Data.Version (showVersion)
+import NeatInterpolation (trimming)
 import Paths_hod (version)
 import System.Directory
 import System.FilePath.Posix
 import System.Process
 import TextShow
 import Text.Pandoc.Shared
+import Utils
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
@@ -38,11 +40,17 @@ instance TextShow Note where
                          , " "
                          , (tshow $ tagList note)]
 
+
 noteRepo = "/home/leo/.donno/repo"
 recordPath = "/home/leo/.donno/reclist"
 defaultListLen = 5
+tmpNotePath = "/tmp/newnote.md"
+defaultNotebook = "/Diary/2021"
+
 
 parse :: [T.Text] -> IO ()
+parse ["a"] = addNote
+parse ["add"] = addNote
 parse ["e"] = editNote 1
 parse ["e", num] = editNote dispNum
     where dispNum = read $ T.unpack num :: Int
@@ -63,7 +71,7 @@ parseNote notePath = do
     let titleLine : tagLine : notebookLine :
             creLine : updLine : _ : _ : bodyLines =
             T.lines fileContent
-    return Note {title = T.drop 7 titleLine
+    return Note { title = T.drop 7 titleLine
         , tagList = map T.strip $ T.splitOn ";" $ T.drop 6 tagLine
         , notebook = T.drop 10 notebookLine
         , created = parseTimeOrError True defaultTimeLocale "%Y-%m-%d %H:%M:%S"
@@ -72,6 +80,41 @@ parseNote notePath = do
             $ T.unpack $ T.drop 9 updLine
         , content = T.unlines bodyLines
         , filePath = T.pack notePath }
+
+
+addNote :: IO ()
+addNote = do
+    rawTime <- formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" <$> getZonedTime
+    let curTime = deQuoteT $ tshow rawTime
+    let templ = [trimming|
+        Title: 
+        Tags: 
+        Notebook: $defaultNotebook
+        Created: $curTime
+        Updated: $curTime
+
+        ------
+
+    |]
+    TIO.writeFile tmpNotePath templ
+    callProcess "nvim" [tmpNotePath]
+    timestamp <- formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTime
+    let noteName = "note" <> timestamp <> ".md"
+    newNote <- parseNote tmpNotePath
+    case title newNote of
+        "" -> putStrLn "Cancelled for empty title!"
+        _ -> copyFile tmpNotePath $ joinPath [noteRepo, noteName]
+
+
+editNote :: Int -> IO ()
+editNote num = do
+    fileContent <- TIO.readFile recordPath
+    let notePath = (T.lines fileContent) !! (num - 1)
+    callProcess "nvim" [T.unpack notePath]
+
+
+listNotes :: Int -> IO ()
+listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
 
 
 loadSortedNotes :: FilePath -> IO [Note]
@@ -107,20 +150,10 @@ simpleSearch words = filterByWords words <$> loadSortedNotes noteRepo
                     words
 
 
-listNotes :: Int -> IO ()
-listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
-
-
 viewNote :: Int -> IO ()
 viewNote num = do
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
     callProcess "nvim" ["-R", T.unpack notePath]
 
-
-editNote :: Int -> IO ()
-editNote num = do
-    fileContent <- TIO.readFile recordPath
-    let notePath = (T.lines fileContent) !! (num - 1)
-    callProcess "nvim" [T.unpack notePath]
 

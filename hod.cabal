@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Notes
+      Utils
   other-modules:
       Paths_hod
   hs-source-dirs:
@@ -34,6 +35,7 @@ library
       base >=4.7 && <5
     , directory
     , filepath >=1.4.2.1
+    , neat-interpolation >=0.5.1.2
     , pandoc >=2.14.0.3
     , process >=1.6.9.0
     , split
@@ -54,6 +56,7 @@ executable hod-exe
     , directory
     , filepath >=1.4.2.1
     , hod
+    , neat-interpolation >=0.5.1.2
     , pandoc >=2.14.0.3
     , process >=1.6.9.0
     , split
@@ -75,6 +78,7 @@ test-suite hod-test
     , directory
     , filepath >=1.4.2.1
     , hod
+    , neat-interpolation >=0.5.1.2
     , pandoc >=2.14.0.3
     , process >=1.6.9.0
     , split
