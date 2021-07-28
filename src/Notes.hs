@@ -36,7 +36,7 @@ data Note = Note
     , created :: LocalTime
     , updated :: LocalTime
     , content :: T.Text
-    , filePath :: T.Text
+    , filePath :: String
     } deriving (Ord, Eq)
 
 instance TextShow Note where
@@ -77,6 +77,7 @@ parse ["version"] = putStrLn $ showVersion version
 parse _ = TIO.putStrLn usage
 
 
+-- |Read a 'Note' from the file at 'notePath'
 parseNote :: FilePath -> IO Note
 parseNote notePath = do
     fileContent <- TIO.readFile notePath
@@ -91,7 +92,7 @@ parseNote notePath = do
         , updated = parseTimeOrError True defaultTimeLocale "%Y-%m-%d %H:%M:%S"
             $ T.unpack $ T.drop 9 updLine
         , content = T.unlines bodyLines
-        , filePath = T.pack notePath }
+        , filePath = notePath }
 
 
 addNote :: IO ()
@@ -118,6 +119,19 @@ addNote = do
         _ -> copyFile tmpNotePath $ joinPath [noteRepo, noteName]
 
 
+-- |Save a 'note' to the 'path'
+saveNote :: Note -> String -> IO ()
+saveNote note path = do
+    let noteStr = T.unlines [ "Title: " <> title note
+                            , "Tags: " <> (T.intercalate "; " $ tagList note)
+                            , "Notebook: " <> notebook note
+                            , "Created: " <> (tshow $ created note)
+                            , "Updated: " <> (tshow $ updated note)
+                            , "\n------"
+                            , content note ]
+    TIO.writeFile path noteStr
+
+
 data SearchItem
     = Title T.Text
     | Tag T.Text
@@ -133,6 +147,7 @@ data SearchFlag
 data SearchTerm = SearchTerm
     { body :: SearchItem
     , flag :: SearchFlag }
+
 
 advancedSearch :: [T.Text] -> IO [Note]
 advancedSearch words = matchWords (map parseTerm words) <$> loadSortedNotes noteRepo
@@ -260,12 +275,17 @@ editNote num = do
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
     callProcess "nvim" [T.unpack notePath]
+    note <- parseNote $ T.unpack notePath
+    curTime <- zonedTimeToLocalTime <$> getZonedTime
+    saveNote (note { updated = roundLocalTime curTime })
+             (filePath note)
 
 
 listNotes :: Int -> IO ()
 listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
 
 
+-- |Load all markdown file from the 'repoPath' and ordered with updated time
 loadSortedNotes :: FilePath -> IO [Note]
 loadSortedNotes repoPath = do
     mdFiles <- (filter $ isSuffixOf ".md") <$> listDirectory repoPath
@@ -275,10 +295,12 @@ loadSortedNotes repoPath = do
     return $ reverse $ sortOn updated notes
 
 
+-- |Save 'notes' (a list of Note created by search or list command)
+-- to record file and print result to stdout
 saveAndDisplayList :: [Note] -> IO ()
 saveAndDisplayList [] = TIO.putStrLn ""
 saveAndDisplayList notes = do
-    TIO.writeFile recordPath $ T.unlines $ map filePath notes
+    writeFile recordPath $ unlines $ map filePath notes
     TIO.putStrLn
         $ T.unlines
         $ "No. Updated, Notebook, Title, Created, Tags" :
