@@ -18,6 +18,17 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
 
+usage = [trimming|
+    Usage:
+    a: add a new note
+    l [N]: list the most recent [N] notes
+    e [N]: edit the <N>th note, 1st by default
+    v [N]: view the <N>th note, 1st by default
+    s [-a]: search notes (-a for advanced mode)
+    b [message]: backup note repo
+    conf <get/set>: get/set config
+|]
+
 data Note = Note
     { title :: T.Text
     , tagList :: [T.Text]
@@ -63,6 +74,7 @@ parse ["v", num] = viewNote dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ["ver"] = parse ["version"]
 parse ["version"] = putStrLn $ showVersion version
+parse _ = TIO.putStrLn usage
 
 
 parseNote :: FilePath -> IO Note

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           hod
-version:        0.4.0.0
+version:        0.4.1.0
 description:    Please see the README on GitHub at <https://github.com/leetschau/hod#readme>
 homepage:       https://github.com/leetschau/hod#readme
 bug-reports:    https://github.com/leetschau/hod/issues
@@ -46,8 +46,6 @@ library
 
 executable hod-exe
   main-is: Main.hs
-  other-modules:
-      Paths_hod
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N

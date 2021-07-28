@@ -1,5 +1,5 @@
 name:                hod
-version:             0.4.0.0
+version:             0.4.1.0
 github:              "leetschau/hod"
 license:             BSD3
 author:              "Chao Li"
@@ -44,6 +44,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - hod
+    when:
+    - condition: false
+      other-modules: Paths_hod
 
 tests:
   hod-test:
