@@ -24,6 +24,7 @@ usage = [trimming|
     l [N]: list the most recent [N] notes
     e [N]: edit the <N>th note, 1st by default
     v [N]: view the <N>th note, 1st by default
+    pv [N]: like view command while view rendered text in browser, 1st by default
     s [-a]: search notes (-a for advanced mode)
     b [message]: backup note repo
     conf <get/set>: get/set config
@@ -56,6 +57,8 @@ recordPath = "/home/leo/.donno/reclist"
 defaultListLen = 5
 tmpNotePath = "/tmp/newnote.md"
 defaultNotebook = "/Diary/2021"
+previewFile = "/tmp/preview.html"
+browser = "firefox"
 
 
 parse :: [T.Text] -> IO ()
@@ -71,6 +74,9 @@ parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
 parse ("s": words) = simpleSearch words >>= saveAndDisplayList
 parse ["v"] = viewNote 1
 parse ["v", num] = viewNote dispNum
+    where dispNum = read $ T.unpack num :: Int
+parse ["pv"] = previewNote 1
+parse ["pv", num] = previewNote dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ["ver"] = parse ["version"]
 parse ["version"] = putStrLn $ showVersion version
@@ -329,3 +335,16 @@ viewNote num = do
     callProcess "nvim" ["-R", T.unpack notePath]
 
 
+previewNote :: Int -> IO ()
+previewNote num = do
+    fileContent <- TIO.readFile recordPath
+    let notePath = (T.lines fileContent) !! (num - 1)
+    callProcess "pandoc" [ "--standalone"
+                         , "--mathjax"
+                         , "--toc"
+                         , "--filter"
+                         , "mermaid-filter"
+                         , "--output"
+                         , previewFile
+                         , T.unpack notePath ]
+    callProcess browser [previewFile]
