@@ -58,6 +58,10 @@ instance TextShow Note where
 parse :: [T.Text] -> IO ()
 parse ["a"] = addNote
 parse ["add"] = addNote
+parse ["b"] = backupDryRun
+parse ["backup"] = backupDryRun
+parse ["b", message] = backup message
+parse ["backup", message] = backup message
 parse ("conf" : "get" : key) = getConfig key
 parse ["conf", "set", key, value] = setConfig (T.unpack key) (T.unpack value)
 parse ["e"] = editNote 1
@@ -125,6 +129,22 @@ addNote = do
     case title newNote of
         "" -> putStrLn "Cancelled for empty title!"
         _ -> copyFile tmpNotePath $ joinPath [repoPath, noteName]
+
+
+backupDryRun :: IO ()
+backupDryRun = do
+    gitRoot <- noteRepo <$> loadConfig
+    setCurrentDirectory gitRoot
+    callProcess "git" ["status"]
+
+
+backup :: T.Text -> IO ()
+backup message = do
+    gitRoot <- noteRepo <$> loadConfig
+    setCurrentDirectory gitRoot
+    callProcess "git" ["add", "-A"]
+    callProcess "git" ["commit", "-m", T.unpack message]
+    callProcess "git" ["push", "origin", "master"]
 
 
 -- |Save a 'note' to the 'path'
