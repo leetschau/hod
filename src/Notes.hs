@@ -13,6 +13,7 @@ import System.FilePath.Posix
 import System.Process
 import TextShow
 import Text.Pandoc.Shared
+import Config
 import Utils
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
@@ -30,6 +31,7 @@ usage = [trimming|
     conf <get/set>: get/set config
 |]
 
+
 data Note = Note
     { title :: T.Text
     , tagList :: [T.Text]
@@ -39,6 +41,7 @@ data Note = Note
     , content :: T.Text
     , filePath :: String
     } deriving (Ord, Eq)
+
 
 instance TextShow Note where
     showb note = fromText $ mconcat [(tshow $ localDay $ updated note)
@@ -52,22 +55,17 @@ instance TextShow Note where
                          , (tshow $ tagList note)]
 
 
-noteRepo = "/home/leo/.donno/repo"
-recordPath = "/home/leo/.donno/reclist"
-defaultListLen = 5
-tmpNotePath = "/tmp/newnote.md"
-defaultNotebook = "/Diary/2021"
-previewFile = "/tmp/preview.html"
-browser = "firefox"
-
-
 parse :: [T.Text] -> IO ()
 parse ["a"] = addNote
 parse ["add"] = addNote
+parse ("conf" : "get" : key) = getConfig key
+parse ["conf", "set", key, value] = setConfig (T.unpack key) (T.unpack value)
 parse ["e"] = editNote 1
 parse ["e", num] = editNote dispNum
     where dispNum = read $ T.unpack num :: Int
-parse ["l"] = listNotes defaultListLen
+parse ["l"] = do
+    noteNum <- defaultListLength . userConf <$> loadConfig
+    listNotes noteNum
 parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
@@ -103,26 +101,30 @@ parseNote notePath = do
 
 addNote :: IO ()
 addNote = do
+    defNotebook <- T.pack . defaultNotebook . userConf <$> loadConfig
     rawTime <- formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S" <$> getZonedTime
     let curTime = deQuoteT $ tshow rawTime
     let templ = [trimming|
         Title: 
         Tags: 
-        Notebook: $defaultNotebook
+        Notebook: $defNotebook
         Created: $curTime
         Updated: $curTime
 
         ------
 
     |]
+    tmpNotePath <- tempNote <$> loadConfig
     TIO.writeFile tmpNotePath templ
-    callProcess "nvim" [tmpNotePath]
+    theEditor <- editor . userConf <$> loadConfig
+    callProcess theEditor [tmpNotePath]
     timestamp <- formatTime defaultTimeLocale "%y%m%d%H%M%S" <$> getZonedTime
     let noteName = "note" <> timestamp <> ".md"
     newNote <- parseNote tmpNotePath
+    repoPath <- noteRepo <$> loadConfig
     case title newNote of
         "" -> putStrLn "Cancelled for empty title!"
-        _ -> copyFile tmpNotePath $ joinPath [noteRepo, noteName]
+        _ -> copyFile tmpNotePath $ joinPath [repoPath, noteName]
 
 
 -- |Save a 'note' to the 'path'
@@ -156,7 +158,9 @@ data SearchTerm = SearchTerm
 
 
 advancedSearch :: [T.Text] -> IO [Note]
-advancedSearch words = matchWords (map parseTerm words) <$> loadSortedNotes noteRepo
+advancedSearch words = do
+    repoPath <- noteRepo <$> loadConfig
+    matchWords (map parseTerm words) <$> loadSortedNotes repoPath
   where
     parseTerm :: T.Text -> Maybe SearchTerm
     parseTerm arg =
@@ -278,9 +282,11 @@ advancedSearch words = matchWords (map parseTerm words) <$> loadSortedNotes note
 
 editNote :: Int -> IO ()
 editNote num = do
+    recordPath <- recordFile <$> loadConfig
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
-    callProcess "nvim" [T.unpack notePath]
+    theEditor <- editor . userConf <$> loadConfig
+    callProcess theEditor [T.unpack notePath]
     note <- parseNote $ T.unpack notePath
     curTime <- zonedTimeToLocalTime <$> getZonedTime
     saveNote (note { updated = roundLocalTime curTime })
@@ -288,7 +294,9 @@ editNote num = do
 
 
 listNotes :: Int -> IO ()
-listNotes num = take num <$> loadSortedNotes noteRepo >>= saveAndDisplayList
+listNotes num = do
+    repoPath <- noteRepo <$> loadConfig
+    take num <$> loadSortedNotes repoPath >>= saveAndDisplayList
 
 
 -- |Load all markdown file from the 'repoPath' and ordered with updated time
@@ -306,6 +314,7 @@ loadSortedNotes repoPath = do
 saveAndDisplayList :: [Note] -> IO ()
 saveAndDisplayList [] = TIO.putStrLn ""
 saveAndDisplayList notes = do
+    recordPath <- recordFile <$> loadConfig
     writeFile recordPath $ unlines $ map filePath notes
     TIO.putStrLn
         $ T.unlines
@@ -315,7 +324,9 @@ saveAndDisplayList notes = do
 
 
 simpleSearch :: [T.Text] -> IO [Note]
-simpleSearch words = filterByWords words <$> loadSortedNotes noteRepo
+simpleSearch words = do
+    repoPath <- noteRepo <$> loadConfig
+    filterByWords words <$> loadSortedNotes repoPath
   where
     wordInNote :: T.Text -> Note -> Bool
     wordInNote word note = (T.isInfixOf word $ title note)
@@ -330,21 +341,58 @@ simpleSearch words = filterByWords words <$> loadSortedNotes noteRepo
 
 viewNote :: Int -> IO ()
 viewNote num = do
+    recordPath <- recordFile <$> loadConfig
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
-    callProcess "nvim" ["-R", T.unpack notePath]
+    theViewer <- viewer . userConf <$> loadConfig
+    case words theViewer of
+      [ viewerExe ] -> callProcess viewerExe [T.unpack notePath]
+      ( viewerExe : args ) -> callProcess viewerExe (args ++ [T.unpack notePath])
 
 
 previewNote :: Int -> IO ()
 previewNote num = do
+    recordPath <- recordFile <$> loadConfig
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
+    previewPath <- previewFile <$> loadConfig
     callProcess "pandoc" [ "--standalone"
                          , "--mathjax"
                          , "--toc"
                          , "--filter"
                          , "mermaid-filter"
                          , "--output"
-                         , previewFile
+                         , previewPath
                          , T.unpack notePath ]
-    callProcess browser [previewFile]
+    browserName <- browser . userConf <$> loadConfig
+    callProcess browserName [previewPath]
+
+
+getConfig :: [T.Text] -> IO ()
+getConfig key = do
+    userConfig <- userConf <$> loadConfig
+    case key of
+        [] -> print userConfig
+        [ "appHome" ] -> putStrLn $ appHome userConfig
+        [ "defaultNotebook" ] -> putStrLn $ defaultNotebook userConfig
+        [ "editor" ] -> putStrLn $ editor userConfig
+        [ "viewer" ] -> putStrLn $ viewer userConfig
+        [ "defaultListLength" ] -> print $ defaultListLength userConfig
+        [ "browser" ] -> putStrLn $ browser userConfig
+        _ -> putStrLn "Invalid key name"
+
+
+setConfig :: String -> String -> IO ()
+setConfig key value = do
+    userConfig <- userConf <$> loadConfig
+    let newConf = case key of
+            "appHome" -> userConfig { appHome = value }
+            "defaultNotebook" -> userConfig { defaultNotebook = value }
+            "editor" -> userConfig { editor = value }
+            "viewer" -> userConfig { viewer = value }
+            "defaultListLength" -> userConfig { defaultListLength = (read value :: Int) }
+            "browser" -> userConfig { browser = value }
+            _ -> userConfig
+    saveConfig newConf
+
+
