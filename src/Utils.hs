@@ -3,6 +3,7 @@ module Utils
     ( deQuote
     , deQuoteT
     , roundLocalTime
+    , showTextList
     ) where
 
 import qualified Data.Text as T
@@ -25,3 +26,10 @@ roundLocalTime date =
         curDay = localDay date
         curTime = localTimeOfDay date
         curSec = (fromIntegral . round . todSec) curTime
+
+-- | Convert a Text list into a hunman-friendly format
+-- ["你好", "世界"] => "[你好; 世界]"
+showTextList :: [T.Text] -> T.Text
+showTextList words = mconcat [ "["
+                             , T.intercalate "; " words
+                             , "]"]

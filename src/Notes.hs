@@ -52,7 +52,7 @@ instance TextShow Note where
                          , " "
                          , (tshow $ localDay $ created note)
                          , " "
-                         , (tshow $ tagList note)]
+                         , (showTextList $ tagList note)]
 
 
 parse :: [T.Text] -> IO ()
