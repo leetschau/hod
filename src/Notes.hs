@@ -418,6 +418,7 @@ setConfig key value = do
             "defaultNotebook" -> userConfig { defaultNotebook = value }
             "editor" -> userConfig { editor = value }
             "viewer" -> userConfig { viewer = value }
+            "evConfPath" -> userConfig { evConfPath = value }
             "defaultListLength" -> userConfig { defaultListLength = (read value :: Int) }
             "browser" -> userConfig { browser = value }
             _ -> userConfig
