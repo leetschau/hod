@@ -19,6 +19,7 @@ data UserConfig = UserConfig
     , defaultNotebook :: String
     , editor :: String
     , viewer :: String
+    , evConfPath :: FilePath
     , defaultListLength :: Int
     , browser :: String
     } deriving Generic
@@ -28,6 +29,7 @@ instance Show UserConfig where
                         , "defaultNotebook: " ++ defaultNotebook conf
                         , "editor: " ++ editor conf
                         , "viewer: " ++ viewer conf
+                        , "evConfPath: " ++ evConfPath conf
                         , "defaultListLength: " ++ (show $ defaultListLength conf)
                         , "browser: " ++ browser conf ]
 
@@ -61,6 +63,7 @@ defaultUserConf = UserConfig
     , defaultNotebook = "/Diary/2021"
     , editor = "nvim"
     , viewer = "nvim -R"
+    , evConfPath = "~/.config/vimrcs/text"  -- config path for editor and viewer
     , defaultListLength = 5
     , browser = "firefox" }
 
@@ -72,12 +75,15 @@ readConfig = do
     case confExists of
         True -> B.readFile configPath
         False -> do
-                     createDirectoryIfMissing True $ takeDirectory configPath
-                     defAppHome <- normalPath $ appHome defaultUserConf
-                     let defUserConfStr =
-                             encode $ defaultUserConf { appHome = defAppHome }
-                     B.writeFile configPath defUserConfStr
-                     return defUserConfStr
+            createDirectoryIfMissing True $ takeDirectory configPath
+            defAppHome <- normalPath $ appHome defaultUserConf
+            defEVConfPath <- normalPath $ evConfPath defaultUserConf
+            let defUserConfStr =
+                  encode $ defaultUserConf { appHome = defAppHome
+                                           , evConfPath = defEVConfPath
+                                           }
+            B.writeFile configPath defUserConfStr
+            return defUserConfStr
 
 parseConfig :: B.ByteString -> Maybe AppConfig
 parseConfig configStr = do
@@ -104,6 +110,9 @@ loadConfig = do
 saveConfig :: UserConfig -> IO ()
 saveConfig newConf = do
     newAppHome <- normalPath $ appHome newConf
-    let conf = encode $ newConf { appHome = newAppHome }
+    newEVConfPath <- normalPath $ evConfPath newConf
+    let conf = encode $ newConf { appHome = newAppHome
+                                , evConfPath = newEVConfPath
+                                }
     configPath <- normalPath confPath
     B.writeFile configPath conf

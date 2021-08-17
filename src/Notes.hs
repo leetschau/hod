@@ -9,6 +9,7 @@ import Data.Version (showVersion)
 import NeatInterpolation (trimming)
 import Paths_hod (version)
 import System.Directory
+import System.Environment
 import System.FilePath.Posix
 import System.Process
 import TextShow
@@ -18,6 +19,7 @@ import Utils
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
+evConfEnv = "XDG_CONFIG_HOME"
 
 usage = [trimming|
     Usage:
@@ -306,7 +308,10 @@ editNote num = do
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
     theEditor <- editor . userConf <$> loadConfig
+    evConf <- evConfPath . userConf <$> loadConfig
+    setEnv evConfEnv evConf
     callProcess theEditor [T.unpack notePath]
+    unsetEnv evConfEnv
     note <- parseNote $ T.unpack notePath
     curTime <- zonedTimeToLocalTime <$> getZonedTime
     saveNote (note { updated = roundLocalTime curTime })
@@ -365,6 +370,8 @@ viewNote num = do
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
     theViewer <- viewer . userConf <$> loadConfig
+    evConf <- evConfPath . userConf <$> loadConfig
+    setEnv evConfEnv evConf
     case words theViewer of
       [ viewerExe ] -> callProcess viewerExe [T.unpack notePath]
       ( viewerExe : args ) -> callProcess viewerExe (args ++ [T.unpack notePath])
@@ -397,6 +404,7 @@ getConfig key = do
         [ "defaultNotebook" ] -> putStrLn $ defaultNotebook userConfig
         [ "editor" ] -> putStrLn $ editor userConfig
         [ "viewer" ] -> putStrLn $ viewer userConfig
+        [ "evConfPath" ] -> putStrLn $ evConfPath userConfig
         [ "defaultListLength" ] -> print $ defaultListLength userConfig
         [ "browser" ] -> putStrLn $ browser userConfig
         _ -> putStrLn "Invalid key name"
