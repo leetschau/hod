@@ -94,7 +94,7 @@ parseConfig configStr = do
                 , noteRepo = joinPath [appHome uconf, "repo"]
                 , recordFile = joinPath [appHome uconf, "reclist"]
                 , tempNote = "/tmp/newnote.md"
-                , previewFile =  "/tmp/preview.html" }
+                , previewFile =  "preview.html" }
         _ -> Nothing
 
 

@@ -383,6 +383,8 @@ previewNote num = do
     fileContent <- TIO.readFile recordPath
     let notePath = (T.lines fileContent) !! (num - 1)
     previewPath <- previewFile <$> loadConfig
+    gitRoot <- noteRepo <$> loadConfig
+    setCurrentDirectory gitRoot
     callProcess "pandoc" [ "--standalone"
                          , "--mathjax"
                          , "--toc"
