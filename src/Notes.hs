@@ -73,6 +73,7 @@ parse ["b"] = backupDryRun
 parse ["backup"] = backupDryRun
 parse ["b", message] = backup message
 parse ["backup", message] = backup message
+parse ["backup-patch"] = backupPatch
 parse ["bp"] = backupPatch
 parse ("conf" : "get" : key) = getConfig key
 parse ["conf", "set", key, value] = setConfig (T.unpack key) (T.unpack value)
@@ -84,6 +85,8 @@ parse ["l"] = do
     listNotes noteNum
 parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
+parse ["restore-patch"] = restorePatch
+parse ["rp"] = restorePatch
 parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
 parse ("s": words) = simpleSearch words >>= saveAndDisplayList
 parse ["v"] = viewNote 1
@@ -479,6 +482,6 @@ restorePatch = do
         setCurrentDirectory gitRoot
         callProcess "tar" ["xvf", patchFile]
     else do
-        print $ "Patch file " ++ patchFile ++ " not exists.\n"
-             ++ "Copy it to " ++ patchFolder ++ " and try again"
+        putStrLn $ "Patch for current version " ++ patchFile ++ " not exists.\n"
+                ++ "Copy it to " ++ patchFolder ++ " and try again."
 
