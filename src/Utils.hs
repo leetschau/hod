@@ -4,10 +4,14 @@ module Utils
     , deQuoteT
     , roundLocalTime
     , showTextList
+    , getFilesWithExt
     ) where
 
+import Data.List (isSuffixOf)
+import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..))
+import System.Directory (listDirectory)
+import System.FilePath.Posix (joinPath)
 import qualified Data.Text as T
-import Data.Time
 
 deQuote :: String -> String
 deQuote ('"': body) | last body == '"' = init body
@@ -33,3 +37,11 @@ showTextList :: [T.Text] -> T.Text
 showTextList words = mconcat [ "["
                              , T.intercalate "; " words
                              , "]"]
+
+-- | Get files with extension 'ext' in 'dir'
+-- Example: getFilesWithExt "/tmp" ".tgz"
+getFilesWithExt :: FilePath -> String -> IO [FilePath]
+getFilesWithExt dir ext = do
+    allFiles <- listDirectory dir
+    let targets = filter (isSuffixOf $ ext) allFiles
+    return $ map (\file -> joinPath [dir, file]) targets

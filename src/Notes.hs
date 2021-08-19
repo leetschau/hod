@@ -3,17 +3,26 @@ module Notes
     ( parse
     ) where
 
-import Data.List
-import Data.Time
+import Data.List (sortOn, isInfixOf)
+import Data.Time ( formatTime
+                 , defaultTimeLocale
+                 , parseTimeOrError
+                 , getZonedTime
+                 , zonedTimeToLocalTime )
+import Data.Time.LocalTime (LocalTime (..), TimeOfDay (..))
 import Data.Version (showVersion)
 import NeatInterpolation (trimming)
 import Paths_hod (version)
-import System.Directory
-import System.Environment
-import System.FilePath.Posix
-import System.Process
-import TextShow
-import Text.Pandoc.Shared
+import System.Directory ( copyFile
+                        , doesFileExist
+                        , listDirectory
+                        , removeFile
+                        , setCurrentDirectory )
+import System.Environment (setEnv, unsetEnv)
+import System.FilePath.Posix (joinPath)
+import System.Process (callProcess, readProcess)
+import TextShow (TextShow (..), fromText)
+import Text.Pandoc.Shared (tshow)
 import Config
 import Utils
 import qualified Data.Text as T
@@ -64,6 +73,7 @@ parse ["b"] = backupDryRun
 parse ["backup"] = backupDryRun
 parse ["b", message] = backup message
 parse ["backup", message] = backup message
+parse ["bp"] = backupPatch
 parse ("conf" : "get" : key) = getConfig key
 parse ["conf", "set", key, value] = setConfig (T.unpack key) (T.unpack value)
 parse ["e"] = editNote 1
@@ -327,7 +337,8 @@ listNotes num = do
 -- |Load all markdown file from the 'repoPath' and ordered with updated time
 loadSortedNotes :: FilePath -> IO [Note]
 loadSortedNotes repoPath = do
-    mdFiles <- (filter $ isSuffixOf ".md") <$> listDirectory repoPath
+    --mdFiles <- (filter $ isSuffixOf ".md") <$> listDirectory repoPath
+    mdFiles <- getFilesWithExt repoPath "md"
     notes <- sequence $ map (\notePath ->
                                 parseNote $ joinPath [repoPath, notePath])
                             mdFiles
@@ -426,4 +437,48 @@ setConfig key value = do
             _ -> userConfig
     saveConfig newConf
 
+
+getGitHead :: IO T.Text
+getGitHead = do
+    gitRoot <- noteRepo <$> loadConfig
+    setCurrentDirectory gitRoot
+    raw <- readProcess "git" ["rev-parse", "--verify", "--short", "HEAD"] ""
+    return $ T.strip $ T.pack raw
+
+
+patchPrefix = "donno-patch-"
+patchExt = ".tgz"
+
+
+backupPatch :: IO ()
+backupPatch = do
+    patchFolder <- patchDir <$> loadConfig
+    tarballs <- getFilesWithExt patchFolder patchExt
+    mapM_ removeFile tarballs
+    gitRoot <- noteRepo <$> loadConfig
+    setCurrentDirectory gitRoot
+    headSha <- getGitHead
+    let patchFileName = joinPath [ patchFolder
+                                 , "donno-patch-" ++ (T.unpack headSha) ++ patchExt]
+    changedList <- readProcess "git" ["status", "-s"] ""
+    let changedFiles = map (drop 3) (lines changedList)
+    callProcess "tar" $ [ "--ignore-failed-read"
+                        , "-cvzf"
+                        , patchFileName ] ++ changedFiles
+
+
+restorePatch :: IO ()
+restorePatch = do
+    patchFolder <- patchDir <$> loadConfig
+    tarballs <- getFilesWithExt patchFolder patchExt
+    headSha <- getGitHead
+    let patchFile = joinPath [patchFolder, patchPrefix ++ T.unpack headSha ++ patchExt]
+    patchExist <- doesFileExist patchFile
+    if patchExist then do
+        gitRoot <- noteRepo <$> loadConfig
+        setCurrentDirectory gitRoot
+        callProcess "tar" ["xvf", patchFile]
+    else do
+        print $ "Patch file " ++ patchFile ++ " not exists.\n"
+             ++ "Copy it to " ++ patchFolder ++ " and try again"
 

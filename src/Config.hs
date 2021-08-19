@@ -6,12 +6,11 @@ module Config
     , UserConfig (..)
     ) where
 
-import Data.Aeson
-import Data.List
-import Data.Time
-import GHC.Generics
-import System.Directory
-import System.FilePath.Posix
+import Data.Aeson (FromJSON, ToJSON, encode, decode)
+import Data.List (isSuffixOf)
+import GHC.Generics (Generic)
+import System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
+import System.FilePath.Posix (joinPath, takeDirectory)
 import qualified Data.ByteString.Lazy as B
 
 data UserConfig = UserConfig
@@ -41,7 +40,8 @@ data AppConfig = AppConfig
     , noteRepo :: FilePath
     , recordFile :: FilePath
     , tempNote :: FilePath
-    , previewFile :: FilePath }
+    , previewFile :: FilePath
+    , patchDir :: String }
 
 
 -- |Get normal path from shorthand format 'abbrPath'
@@ -57,6 +57,7 @@ normalPath abbrPath = do
 
 
 confPath =  "~/.config/hod/config.json"
+tempPath = "/tmp"
 
 defaultUserConf = UserConfig
     { appHome =  "~/.donno"
@@ -93,8 +94,9 @@ parseConfig configStr = do
                 { userConf = uconf
                 , noteRepo = joinPath [appHome uconf, "repo"]
                 , recordFile = joinPath [appHome uconf, "reclist"]
-                , tempNote = "/tmp/newnote.md"
-                , previewFile =  "preview.html" }
+                , tempNote = joinPath [tempPath, "newnote.md"]
+                , previewFile =  "preview.html"
+                , patchDir = tempPath }
         _ -> Nothing
 
 
@@ -116,3 +118,4 @@ saveConfig newConf = do
                                 }
     configPath <- normalPath confPath
     B.writeFile configPath conf
+
