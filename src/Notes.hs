@@ -3,7 +3,7 @@ module Notes
     ( parse
     ) where
 
-import Data.List (sortOn, isInfixOf)
+import Data.List (isInfixOf, nub, sort, sortOn)
 import Data.Time ( formatTime
                  , defaultTimeLocale
                  , parseTimeOrError
@@ -85,6 +85,7 @@ parse ["l"] = do
     listNotes noteNum
 parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
+parse ["lnb"] = listNotebooks
 parse ["restore-patch"] = restorePatch
 parse ["rp"] = restorePatch
 parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
@@ -340,7 +341,6 @@ listNotes num = do
 -- |Load all markdown file from the 'repoPath' and ordered with updated time
 loadSortedNotes :: FilePath -> IO [Note]
 loadSortedNotes repoPath = do
-    --mdFiles <- (filter $ isSuffixOf ".md") <$> listDirectory repoPath
     mdFiles <- getFilesWithExt repoPath "md"
     notes <- sequence $ map (\notePath ->
                                 parseNote $ joinPath [repoPath, notePath])
@@ -485,3 +485,10 @@ restorePatch = do
         putStrLn $ "Patch for current version " ++ patchFile ++ " not exists.\n"
                 ++ "Copy it to " ++ patchFolder ++ " and try again."
 
+-- |List all notebooks in alphabetical order
+listNotebooks :: IO ()
+listNotebooks = do
+    repoPath <- noteRepo <$> loadConfig
+    notes <- loadSortedNotes repoPath
+    let uniqNotebooks = (sort . nub) $ map notebook notes
+    TIO.putStrLn $ T.unlines uniqNotebooks
