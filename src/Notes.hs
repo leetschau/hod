@@ -368,9 +368,9 @@ simpleSearch words = do
     filterByWords words <$> loadSortedNotes repoPath
   where
     wordInNote :: T.Text -> Note -> Bool
-    wordInNote word note = (T.isInfixOf word $ title note)
-        || (T.isInfixOf word $ content note)
-        || (any (T.isInfixOf word) $ tagList note)
+    wordInNote word note = (T.isInfixOf word $ T.toLower $ title note)
+        || (T.isInfixOf word $ T.toLower $ content note)
+        || (any (\tag -> T.isInfixOf word $ T.toLower tag) $ tagList note)
     filterByWords :: [T.Text] -> [Note] -> [Note]
     filterByWords words notes =
         foldl (\noteList word -> filter (wordInNote word) noteList)
