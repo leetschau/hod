@@ -64,7 +64,7 @@ defaultUserConf = UserConfig
     , defaultNotebook = "/Diary/2021"
     , editor = "nvim"
     , viewer = "nvim -R"
-    , evConfPath = "~/.config/vimrcs/text"  -- config path for editor and viewer
+    , evConfPath = "~/.config/vimrcs/donno"  -- config path for editor and viewer
     , defaultListLength = 5
     , browser = "firefox" }
 
