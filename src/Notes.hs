@@ -40,6 +40,8 @@ usage = [trimming|
     s [-a]: search notes (-a for advanced mode)
     b [message]: backup note repo
     conf <get/set>: get/set config
+    lnb: list all notebooks
+    ver: show current version and exit
 |]
 
 
@@ -166,7 +168,7 @@ backup message = do
 -- |Save a 'note' to the 'path'
 saveNote :: Note -> String -> IO ()
 saveNote note path = do
-    let noteStr = T.unlines [ "Title: " <> title note
+    let noteStr = T.strip $ T.unlines [ "Title: " <> title note
                             , "Tags: " <> (T.intercalate "; " $ tagList note)
                             , "Notebook: " <> notebook note
                             , "Created: " <> (tshow $ created note)
