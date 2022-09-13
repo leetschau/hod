@@ -39,6 +39,7 @@ usage = [trimming|
     pv [N]: like view command while view rendered text in browser, 1st by default
     s [-a]: search notes (-a for advanced mode)
     b [message]: backup note repo
+    syn: synchronize note repo from remote (run `git -C ~/.donno/repo pull`)
     conf <get/set>: get/set config
     lnb: list all notebooks
     ver: show current version and exit
@@ -88,6 +89,7 @@ parse ["l"] = do
 parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ["lnb"] = listNotebooks
+parse ["syn"] = syncNotebooks
 parse ["restore-patch"] = restorePatch
 parse ["rp"] = restorePatch
 parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
@@ -471,6 +473,11 @@ backupPatch = do
                         , "-cvzf"
                         , patchFileName ] ++ changedFiles
 
+
+syncNotebooks :: IO ()
+syncNotebooks = do
+    repoPath <- noteRepo <$> loadConfig
+    callProcess "git" ["-C", repoPath, "pull"]
 
 restorePatch :: IO ()
 restorePatch = do
