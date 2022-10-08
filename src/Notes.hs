@@ -33,15 +33,17 @@ evConfEnv = "XDG_CONFIG_HOME"
 usage = [trimming|
     Usage:
     a: add a new note
-    l [N]: list the most recent [N] notes
-    e [N]: edit the <N>th note, 1st by default
-    v [N]: view the <N>th note, 1st by default
-    pv [N]: like view command while view rendered text in browser, 1st by default
-    s [-a]: search notes (-a for advanced mode)
     b [message]: backup note repo
-    syn: synchronize note repo from remote (run `git -C ~/.donno/repo pull`)
     conf <get/set>: get/set config
+    bp: backup unversion-controlled contents to path file
+    e [N]: edit the <N>th note, 1st by default
+    l [N]: list the most recent [N] notes
     lnb: list all notebooks
+    pv [N]: like view command while view rendered text in browser, 1st by default
+    rp: update notes through patch file created by `bp` command
+    s [-a]: search notes (-a for advanced mode)
+    syn: synchronize note repo from remote (run `git -C ~/.donno/repo pull`)
+    v [N]: view the <N>th note, 1st by default
     ver: show current version and exit
 |]
 
