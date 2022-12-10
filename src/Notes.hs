@@ -34,9 +34,10 @@ usage = [trimming|
     Usage:
     a: add a new note
     b [message]: backup note repo
+    bp: backup unversioned notes to patch file
     conf <get/set>: get/set config
-    bp: backup unversion-controlled contents to path file
     e [N]: edit the <N>th note, 1st by default
+    ip: import patch file to current note repo
     l [N]: list the most recent [N] notes
     lnb: list all notebooks
     pv [N]: like view command while view rendered text in browser, 1st by default
@@ -92,8 +93,8 @@ parse ["l", num] = listNotes dispNum
     where dispNum = read $ T.unpack num :: Int
 parse ["lnb"] = listNotebooks
 parse ["syn"] = syncNotebooks
-parse ["restore-patch"] = restorePatch
-parse ["rp"] = restorePatch
+parse ["import-patch"] = importPatch
+parse ["ip"] = importPatch
 parse ("s": "-a": words) = advancedSearch words >>= saveAndDisplayList
 parse ("s": words) = simpleSearch words >>= saveAndDisplayList
 parse ["v"] = viewNote 1
@@ -481,8 +482,8 @@ syncNotebooks = do
     repoPath <- noteRepo <$> loadConfig
     callProcess "git" ["-C", repoPath, "pull"]
 
-restorePatch :: IO ()
-restorePatch = do
+importPatch :: IO ()
+importPatch = do
     patchFolder <- patchDir <$> loadConfig
     tarballs <- getFilesWithExt patchFolder patchExt
     headSha <- getGitHead
